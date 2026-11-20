@@ -566,3 +566,36 @@ function handleLogout() {
   document.getElementById("adminLoginForm").reset();
   setLoginRole("student");
 }
+// ==========================================
+// 9. LIVE MULTI-DEVICE SYNC (EVERY 2 SECONDS)
+// ==========================================
+async function pushStateToServer() {
+  try {
+    await fetch("/api/sync", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ seats, auditLog }),
+    });
+  } catch (e) {}
+}
+
+async function pullStateFromServer() {
+  try {
+    const res = await fetch("/api/sync");
+    const data = await res.json();
+    if (data && Array.isArray(data.seats) && data.seats.length > 0) {
+      seats = data.seats;
+      if (Array.isArray(data.auditLog)) auditLog = data.auditLog;
+      renderAll();
+    }
+  } catch (e) {}
+}
+
+document.addEventListener("click", (e) => {
+  if (e.target.closest("button")) {
+    setTimeout(pushStateToServer, 150);
+  }
+});
+
+pullStateFromServer();
+setInterval(pullStateFromServer, 2000);
