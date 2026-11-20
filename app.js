@@ -567,7 +567,7 @@ function handleLogout() {
   setLoginRole("student");
 }
 // ==========================================
-// 9. LIVE MULTI-DEVICE SYNC (FIXED)
+// 9. LIVE MULTI-DEVICE SYNC (TIMER-SAFE)
 // ==========================================
 function getLogBox() {
   return (
@@ -581,16 +581,18 @@ function getLogBox() {
   );
 }
 
-let isPulling = false;
+let lastSyncTime = 0;
 
 async function pushStateToServer() {
-  if (isPulling) return;
   try {
+    const now = Date.now();
+    lastSyncTime = now;
     const logEl = getLogBox();
     await fetch("/api/sync", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
+        updatedAt: now,
         seats: seats,
         logHtml: logEl ? logEl.innerHTML : ""
       }),
@@ -602,8 +604,9 @@ async function pullStateFromServer() {
   try {
     const res = await fetch("/api/sync");
     const data = await res.json();
-    if (data && Array.isArray(data.seats) && data.seats.length > 0) {
-      isPulling = true;
+    // Only apply update if it is NEWER than what this laptop already has
+    if (data && data.updatedAt && data.updatedAt > lastSyncTime && Array.isArray(data.seats)) {
+      lastSyncTime = data.updatedAt;
       seats.splice(0, seats.length, ...data.seats);
       const logEl = getLogBox();
       if (logEl && data.logHtml && data.logHtml.length > 10) {
@@ -611,14 +614,10 @@ async function pullStateFromServer() {
       }
       if (typeof renderAll === "function") renderAll();
       if (typeof renderAdmin === "function") renderAdmin();
-      isPulling = false;
     }
-  } catch (e) {
-    isPulling = false;
-  }
+  } catch (e) {}
 }
 
-// Push ONLY when a real seat/demo action happens (not when switching tabs)
 if (typeof addLog === "function") {
   const originalAddLog = addLog;
   addLog = function (...args) {
