@@ -6,7 +6,8 @@
 }
 
 body {
-  background: linear-gradient(135deg, #eef2ff 0%, #e0e7ff 100%)
+  background: #f4f6f9;
+  color: #1e293b;
   min-height: 100vh;
 }
 
@@ -567,4 +568,8 @@ body {
 
 .logout-btn:hover {
   background: #b91c1c;
+}
+html, body {
+  background: linear-gradient(135deg, #eef2ff 0%, #c7d2fe 100%) !important;
+  min-height: 100vh !important;
 }
