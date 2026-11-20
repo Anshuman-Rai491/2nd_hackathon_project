@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SeatPulse — Smart Library Seat Finder</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+      <!-- Login Overlay -->
+  <div id="loginOverlay" class="login-overlay">
+    <div class="login-card">
+      <div class="brand" style="justify-content: center; margin-bottom: 16px;">
+        <span class="logo-dot"></span>
+        <h1>SeatPulse Login</h1>
+      </div>
+
+      <div class="role-tabs">
+        <button id="roleStudentBtn" class="role-tab active" onclick="setLoginRole('student')">Student</button>
+        <button id="roleRegisterBtn" class="role-tab" onclick="setLoginRole('register')">Register</button>
+        <button id="roleAdminBtn" class="role-tab" onclick="setLoginRole('admin')">Admin</button>
+      </div>
+
+      <!-- Student Login Form -->
+      <form id="studentLoginForm" class="login-form" onsubmit="handleStudentLogin(event)">
+        <div class="input-group">
+          <label>Roll Number / Student ID</label>
+          <input type="text" id="studentIdInput" placeholder="e.g. CS-2026-42" required />
+        </div>
+        <div class="input-group">
+          <label>Password</label>
+          <input type="password" id="studentPassInput" placeholder="Enter your password" required />
+        </div>
+        <p id="studentLoginError" class="login-error hidden"></p>
+        <button type="submit" class="action-btn btn-primary">Login to Library Map</button>
+        <button type="button" class="action-btn btn-outline" onclick="quickDemoLogin('student')">
+          Quick Demo Student Login
+        </button>
+      </form>
+
+      <!-- Student Register Form -->
+      <form id="registerForm" class="login-form hidden" onsubmit="handleRegister(event)">
+        <div class="input-group">
+          <label>Full Name</label>
+          <input type="text" id="regNameInput" placeholder="e.g. Anshu Sharma" required />
+        </div>
+        <div class="input-group">
+          <label>Roll Number / Student ID</label>
+          <input type="text" id="regIdInput" placeholder="e.g. CS-2026-42" required />
+        </div>
+        <div class="input-group">
+          <label>Create Password</label>
+          <input type="password" id="regPassInput" placeholder="Min 4 characters" minlength="4" required />
+        </div>
+        <p id="regMessage" class="login-error hidden"></p>
+        <button type="submit" class="action-btn btn-success">Create Student Account</button>
+      </form>
+
+      <!-- Admin Login Form -->
+      <form id="adminLoginForm" class="login-form hidden" onsubmit="handleAdminLogin(event)">
+        <div class="input-group">
+          <label>Admin Username</label>
+          <input type="text" id="adminUserInput" placeholder="admin" required />
+        </div>
+        <div class="input-group">
+          <label>Password</label>
+          <input type="password" id="adminPassInput" placeholder="admin123" required />
+        </div>
+        <p id="loginError" class="login-error hidden">Invalid credentials. Try admin / admin123</p>
+        <button type="submit" class="action-btn btn-primary">Sign In as Admin</button>
+        <button type="button" class="action-btn btn-outline" onclick="quickDemoLogin('admin')">
+          Quick Demo Admin Login
+        </button>
+      </form>
+    </div>
+  </div>
+  <!-- Top Navigation -->
+  <header class="navbar">
+    <div class="brand">
+      <span class="logo-dot"></span>
+      <div>
+        <h1>SeatPulse</h1>
+        <p class="subtitle">Smart Library Seat Finder</p>
+      </div>
+    </div>
+
+    <nav class="view-tabs">
+      <button id="tabMap" class="tab-btn active">Live Floor Map</button>
+      <button id="tabAdmin" class="tab-btn">Admin Analytics</button>
+    </nav>
+
+    <div class="sync-badge">
+      <span class="pulse-dot"></span>
+      <span id="syncText">Live sync: 5s</span>
+    </div>
+  </header>
+
+  <!-- Hackathon Demo Controls -->
+  <section class="demo-bar">
+    <span class="demo-label">DEMO CONTROLS:</span>
+    <button id="btnSpeedToggle" class="demo-btn">Time Speed: 1x (Real)</button>
+    <button id="btnRushTest" class="demo-btn danger">Simulate Concurrency Rush (5x)</button>
+    <button id="btnResetDemo" class="demo-btn">Reset All Seats</button>
+    <span id="demoToast" class="demo-toast"></span>
+  </section>
+
+  <!-- VIEW 1: LIVE FLOOR MAP -->
+  <main id="mapView" class="main-layout">
+    <!-- Left Column: Floor Selector & Seat Grid -->
+    <section class="map-section">
+      <div class="floor-header">
+        <div class="floor-tabs">
+          <button class="floor-btn active" data-floor="1">Floor 1 · Quiet Zone</button>
+          <button class="floor-btn" data-floor="2">Floor 2 · Group Study</button>
+          <button class="floor-btn" data-floor="3">Floor 3 · Exam Hall</button>
+        </div>
+
+        <div class="legend">
+          <span><i class="dot available"></i> Available</span>
+          <span><i class="dot reserved"></i> Pending QR</span>
+          <span><i class="dot occupied"></i> Checked In</span>
+          <span><i class="dot break"></i> On Break (20m)</span>
+        </div>
+      </div>
+
+      <!-- Summary Counters -->
+      <div class="stats-row" id="floorStats"></div>
+
+      <!-- Live Seat Grid -->
+      <div class="seat-grid" id="seatGrid"></div>
+    </section>
+
+    <!-- Right Column: Selected Seat Details & QR Check-in -->
+    <aside class="detail-panel" id="detailPanel">
+      <h2>Seat Details</h2>
+      <p class="muted">Click any seat on the floor map to reserve, check in via QR, or start a 20-minute break.</p>
+    </aside>
+  </main>
+
+  <!-- VIEW 2: ADMIN ANALYTICS -->
+  <main id="adminView" class="admin-layout hidden">
+    <div class="admin-grid">
+      <!-- Peak Hours Chart -->
+      <section class="card">
+        <h2>Exam Week Peak Hours Occupancy</h2>
+        <p class="muted">Average library seat occupancy (%) by hour</p>
+        <div id="peakChart" class="bar-chart"></div>
+      </section>
+
+      <!-- Most Hogged Seats -->
+      <section class="card">
+        <h2>Most Hogged Seats (Auto-Released)</h2>
+        <p class="muted">Seats frequently abandoned past the 20-min break limit. Click a row to inspect.</p>
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Seat</th>
+              <th>Floor</th>
+              <th>Auto-Releases</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody id="hoggedTableBody"></tbody>
+        </table>
+      </section>
+    </div>
+
+    <!-- Concurrency Audit Log -->
+    <section class="card">
+      <h2>Live Concurrency & Booking Audit Log</h2>
+      <p class="muted">Demonstrates atomic seat locking (HTTP 200 OK vs HTTP 409 Conflict) under simultaneous load.</p>
+      <div id="auditLog" class="audit-log"></div>
+    </section>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
