@@ -567,16 +567,22 @@ function handleLogout() {
   setLoginRole("student");
 }
 // ==========================================
-// 9. LIVE MULTI-DEVICE SYNC (EVERY 2 SECONDS)
+// 9. LIVE MULTI-DEVICE SYNC (SEATS + AUDIT LOG)
 // ==========================================
 async function pushStateToServer() {
   try {
+    const logEl = document.getElementById("auditLog");
     await fetch("/api/sync", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ seats, auditLog }),
+      body: JSON.stringify({
+        seats: seats,
+        logHtml: logEl ? logEl.innerHTML : ""
+      }),
     });
-  } catch (e) {}
+  } catch (e) {
+    console.error("Sync push failed:", e);
+  }
 }
 
 async function pullStateFromServer() {
@@ -584,16 +590,21 @@ async function pullStateFromServer() {
     const res = await fetch("/api/sync");
     const data = await res.json();
     if (data && Array.isArray(data.seats) && data.seats.length > 0) {
-      seats = data.seats;
-      if (Array.isArray(data.auditLog)) auditLog = data.auditLog;
+      seats.splice(0, seats.length, ...data.seats);
+      const logEl = document.getElementById("auditLog");
+      if (logEl && data.logHtml) {
+        logEl.innerHTML = data.logHtml;
+      }
       renderAll();
     }
-  } catch (e) {}
+  } catch (e) {
+    console.error("Sync pull failed:", e);
+  }
 }
 
 document.addEventListener("click", (e) => {
   if (e.target.closest("button")) {
-    setTimeout(pushStateToServer, 150);
+    setTimeout(pushStateToServer, 200);
   }
 });
 
