@@ -567,11 +567,26 @@ function handleLogout() {
   setLoginRole("student");
 }
 // ==========================================
-// 9. LIVE MULTI-DEVICE SYNC (SEATS + AUDIT LOG)
+// 9. LIVE MULTI-DEVICE SYNC (FIXED)
 // ==========================================
+function getLogBox() {
+  return (
+    document.getElementById("auditLog") ||
+    document.getElementById("logBox") ||
+    document.querySelector(".audit-log") ||
+    document.querySelector(".log-console") ||
+    Array.from(document.querySelectorAll("div")).find(
+      (el) => el.children.length > 0 && el.innerText.includes("Initialized 3 floors")
+    )
+  );
+}
+
+let isPulling = false;
+
 async function pushStateToServer() {
+  if (isPulling) return;
   try {
-    const logEl = document.getElementById("auditLog");
+    const logEl = getLogBox();
     await fetch("/api/sync", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -580,9 +595,7 @@ async function pushStateToServer() {
         logHtml: logEl ? logEl.innerHTML : ""
       }),
     });
-  } catch (e) {
-    console.error("Sync push failed:", e);
-  }
+  } catch (e) {}
 }
 
 async function pullStateFromServer() {
@@ -590,23 +603,29 @@ async function pullStateFromServer() {
     const res = await fetch("/api/sync");
     const data = await res.json();
     if (data && Array.isArray(data.seats) && data.seats.length > 0) {
+      isPulling = true;
       seats.splice(0, seats.length, ...data.seats);
-      const logEl = document.getElementById("auditLog");
-      if (logEl && data.logHtml) {
+      const logEl = getLogBox();
+      if (logEl && data.logHtml && data.logHtml.length > 10) {
         logEl.innerHTML = data.logHtml;
       }
-      renderAll();
+      if (typeof renderAll === "function") renderAll();
+      if (typeof renderAdmin === "function") renderAdmin();
+      isPulling = false;
     }
   } catch (e) {
-    console.error("Sync pull failed:", e);
+    isPulling = false;
   }
 }
 
-document.addEventListener("click", (e) => {
-  if (e.target.closest("button")) {
-    setTimeout(pushStateToServer, 200);
-  }
-});
+// Push ONLY when a real seat/demo action happens (not when switching tabs)
+if (typeof addLog === "function") {
+  const originalAddLog = addLog;
+  addLog = function (...args) {
+    originalAddLog.apply(this, args);
+    setTimeout(pushStateToServer, 100);
+  };
+}
 
 pullStateFromServer();
 setInterval(pullStateFromServer, 2000);
