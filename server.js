@@ -192,7 +192,17 @@ app.post("/api/auth/login", (req, res) => {
 
   res.json({ user: { role: "student", name: `${user.name} (${user.id})` } });
 });
+// 9. Live Multi-Device Seat Sync
+let sharedState = null;
 
+app.get("/api/sync", (req, res) => {
+  res.json(sharedState || {});
+});
+
+app.post("/api/sync", (req, res) => {
+  sharedState = req.body;
+  res.json({ ok: true });
+});
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
   console.log(`SeatPulse running at http://localhost:${PORT}`);
